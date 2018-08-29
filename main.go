@@ -13,8 +13,8 @@ import (
 func main() {
 	configMap := getConfig()
 
-	tc := trello.NewClient(configMap["trello_key"], configMap["trello_token"])
-	board, err := tc.GetBoard(configMap["trello_board_id"], nil)
+	tc := trello.NewClient(configMap["trello_key"].(string), configMap["trello_token"].(string))
+	board, err := tc.GetBoard(configMap["trello_board_id"].(string), nil)
 	if err != nil {
 		fmt.Printf("board error: %s\n", err)
 		os.Exit(1)
@@ -28,7 +28,7 @@ func main() {
 
 	list := &trello.List{}
 	for _, v := range lists {
-		if v.Name == configMap["trello_list_name"] {
+		if v.Name == configMap["trello_list_name"].(string) {
 			list = v
 			break
 		}
@@ -39,7 +39,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	for _, v := range getOpenConsultations(configMap["citizen_space_instance_url"]) {
+	consultations := []map[string]interface{}{}
+	for _, v := range configMap["citizen_space_instances"].([]map[string]string) {
+		consultations = append(consultations, getOpenConsultations(v["label"], v["url"])...)
+	}
+
+	for _, v := range consultations {
 		endDate, err := time.Parse("2006/01/02", v["enddate"].(string))
 		if err != nil {
 			fmt.Printf("failed to parse date for submission %s: %s", v["title"].(string), err)
@@ -60,14 +65,14 @@ func main() {
 	}
 }
 
-func getConfig() map[string]string {
+func getConfig() map[string]interface{} {
 	file, err := os.Open("config.json")
 	if err != nil {
 		fmt.Printf("could not get config: %s\n", err)
 		os.Exit(1)
 	}
 
-	configMap := map[string]string{}
+	configMap := map[string]interface{}{}
 	err = json.NewDecoder(file).Decode(&configMap)
 	if err != nil {
 		fmt.Printf("could not decode config: %s", err)
@@ -77,7 +82,7 @@ func getConfig() map[string]string {
 	return configMap
 }
 
-func getOpenConsultations(url string) []map[string]interface{} {
+func getOpenConsultations(label string, url string) []map[string]interface{} {
 	result, err := http.Get(fmt.Sprintf("%s/api/2.3/json_search_results?dk=op&fd=2018/01/01&td=2018/12/31", url))
 	if err != nil {
 		fmt.Printf("error getting consultations: %s\n", err)
@@ -89,6 +94,10 @@ func getOpenConsultations(url string) []map[string]interface{} {
 	if err != nil {
 		fmt.Printf("error decoding consultations: %s\n", err)
 		os.Exit(1)
+	}
+
+	for k := range consultations {
+		consultations[k]["label"] = label
 	}
 
 	return consultations

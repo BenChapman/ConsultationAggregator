@@ -3,5 +3,8 @@
     "trello_token": "[token]",
     "trello_board_id": "[board_id]",
     "trello_list_name": "Up for grabs",
-    "citizen_space_instance_url": "https://consultation.dublincity.ie"
+    "citizen_space_instances": [
+      {"url":"https://consultation.dublincity.ie", "label":"dcc"},
+      {"url":"https://dlrcoco.citizenspace.com/", "label":"dlrcc"}
+    ]
 }
