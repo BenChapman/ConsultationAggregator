@@ -1,7 +1,7 @@
 {
-  "trello_key": "[key]",
-  "trello_token": "[token]",
-	"trello_board_id": "[board_id]",
-	"trello_list_name": "Up for grabs",
-	"citizen_space_instance_url": "https://consultation.dublincity.ie"
+    "trello_key": "[key]",
+    "trello_token": "[token]",
+    "trello_board_id": "[board_id]",
+    "trello_list_name": "Up for grabs",
+    "citizen_space_instance_url": "https://consultation.dublincity.ie"
 }
