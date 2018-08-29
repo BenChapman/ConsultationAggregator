@@ -20,6 +20,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	labels, err := board.GetLabels(nil)
+	if err != nil {
+		fmt.Printf("label error: %s\n", err)
+		os.Exit(1)
+	}
+
 	lists, err := board.GetLists(nil)
 	if err != nil {
 		fmt.Printf("could not get lists: %s\n", err)
@@ -40,8 +46,10 @@ func main() {
 	}
 
 	consultations := []map[string]interface{}{}
-	for _, v := range configMap["citizen_space_instances"].([]map[string]string) {
-		consultations = append(consultations, getOpenConsultations(v["label"], v["url"])...)
+
+	for _, v := range configMap["citizen_space_instances"].([]interface{}) {
+		a := v.(map[string]interface{})
+		consultations = append(consultations, getOpenConsultations(a["label"].(string), a["url"].(string))...)
 	}
 
 	for _, v := range consultations {
@@ -51,13 +59,24 @@ func main() {
 			continue
 		}
 
-		card := &trello.Card{
-			Name: v["title"].(string),
-			Desc: v["url"].(string),
-			Due:  &endDate,
+		label, err := getLabelByName(labels, v["label"].(string))
+		if err != nil {
+			fmt.Printf("label error: %s", err)
 		}
 
-		err = list.AddCard(card, nil)
+		card := &trello.Card{
+			IDBoard:  board.ID,
+			IDList:   list.ID,
+			Name:     v["title"].(string),
+			Desc:     v["url"].(string),
+			Due:      &endDate,
+			IDLabels: []string{label.ID},
+		}
+
+		// For some reason creating the card using the List.AddCard() method
+		// means the labels don't get added. Instead use the client to create the
+		// card
+		err = tc.CreateCard(card, nil)
 		if err != nil {
 			fmt.Printf("error creating card for %s: %s", v["title"].(string), err)
 			continue
@@ -101,4 +120,14 @@ func getOpenConsultations(label string, url string) []map[string]interface{} {
 	}
 
 	return consultations
+}
+
+func getLabelByName(labels []*trello.Label, name string) (*trello.Label, error) {
+	for _, v := range labels {
+		if v.Name == name {
+			return v, nil
+		}
+	}
+
+	return nil, fmt.Errorf("could not find label %s in board", name)
 }
