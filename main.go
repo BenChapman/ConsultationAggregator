@@ -3,15 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/adlio/trello"
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/net/html"
 )
 
 type ConsultationAggregatorConfig struct {
@@ -101,14 +103,6 @@ func main() {
 	}
 
 	for _, v := range consultations {
-		endDate := time.Time{}
-		if _, ok := v["enddate"]; ok {
-			endDate, err = time.Parse("2006/01/02", v["enddate"].(string))
-			if err != nil {
-				fmt.Printf("failed to parse date for submission %s: %s", v["title"].(string), err)
-			}
-		}
-
 		label, err := getLabelByName(labels, v["label"].(string))
 		if err != nil {
 			fmt.Printf("label error: %s", err)
@@ -121,6 +115,7 @@ func main() {
 			Desc:     v["url"].(string),
 			IDLabels: []string{label.ID},
 		}
+		endDate := v["enddate"].(time.Time)
 		if !endDate.IsZero() {
 			card.Due = &endDate
 		}
@@ -185,6 +180,14 @@ func getOpenConsultationsFromCitizenSpace(label string, url string) []map[string
 
 	for k := range consultations {
 		consultations[k]["label"] = label
+		endDate := time.Time{}
+		if _, ok := consultations[k]["enddate"]; ok {
+			endDate, err = time.Parse("2006/01/02", consultations[k]["enddate"].(string))
+			if err != nil {
+				fmt.Printf("failed to parse date for submission %s: %s", consultations[k]["title"].(string), err)
+			}
+			consultations[k]["enddate"] = endDate
+		}
 	}
 
 	return consultations
@@ -210,15 +213,39 @@ func getOpenConsultationsFromCiviqRSS(label string, feedURL string) []map[string
 
 	consultations := []map[string]interface{}{}
 	for _, v := range feed.Items {
+		endDate, err := extractEndDateFromDescription(v.Description)
+		if err != nil {
+			fmt.Printf("error parsing date: %s\n", err)
+		}
+
 		consultations = append(consultations, map[string]interface{}{
-			"label": label,
-			"title": html.UnescapeString(v.Title),
-			"url":   fmt.Sprintf("%s/en/node/%s", rssURL, v.GUID),
-			"id":    v.GUID,
+			"label":   label,
+			"title":   html.UnescapeString(v.Title),
+			"url":     fmt.Sprintf("%s/en/node/%s", rssURL, v.GUID),
+			"id":      v.GUID,
+			"enddate": endDate,
 		})
 	}
 
 	return consultations
+}
+
+func extractEndDateFromDescription(description string) (time.Time, error) {
+	node, err := html.Parse(strings.NewReader(html.UnescapeString(description)))
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	document := goquery.NewDocumentFromNode(node)
+
+	endDateNode, ok := document.Find(".date-display-end").First().Attr("content")
+	if !ok {
+		return time.Time{}, nil
+	}
+
+	endDate, err := time.Parse("2006-01-02T15:04:05-07:00", endDateNode)
+
+	return endDate, err
 }
 
 func getLabelByName(labels []*trello.Label, name string) (*trello.Label, error) {
