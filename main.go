@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/adlio/trello"
@@ -21,8 +22,34 @@ type ConsultationAggregatorConfig struct {
 	} `json:"citizen_space_instances"`
 }
 
+type CacheItems []string
+
+func (ci CacheItems) Contains(id string) bool {
+	for _, v := range ci {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	caConfig := getConfig()
+
+	cacheFilePath := filepath.Join(os.Getenv("HOME"), ".ConsultationCache")
+	file, err := os.Open(cacheFilePath)
+	if err != nil {
+		fmt.Printf("cache file error: %s\n", err)
+		os.Exit(1)
+	}
+
+	cache := CacheItems{}
+	err = json.NewDecoder(file).Decode(&cache)
+	if err != nil {
+		fmt.Printf("cache decode error: %s\n", err)
+		os.Exit(1)
+	}
+	file.Close()
 
 	tc := trello.NewClient(caConfig.TrelloKey, caConfig.TrelloToken)
 	board, err := tc.GetBoard(caConfig.TrelloBoardID, nil)
@@ -83,14 +110,30 @@ func main() {
 			IDLabels: []string{label.ID},
 		}
 
-		// For some reason creating the card using the List.AddCard() method
-		// means the labels don't get added. Instead use the client to create the
-		// card
-		err = tc.CreateCard(card, nil)
-		if err != nil {
-			fmt.Printf("error creating card for %s: %s", v["title"].(string), err)
-			continue
+		if !cache.Contains(v["id"].(string)) {
+			// For some reason creating the card using the List.AddCard() method
+			// means the labels don't get added. Instead use the client to create the
+			// card
+			err = tc.CreateCard(card, nil)
+			if err != nil {
+				fmt.Printf("error creating card for %s: %s", v["title"].(string), err)
+				continue
+			}
+
+			cache = append(cache, v["id"].(string))
 		}
+	}
+
+	file, err = os.OpenFile(cacheFilePath, os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("cache file error: %s\n", err)
+		os.Exit(1)
+	}
+
+	err = json.NewEncoder(file).Encode(cache)
+	if err != nil {
+		fmt.Printf("cache encoding error: %s\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -101,14 +144,14 @@ func getConfig() ConsultationAggregatorConfig {
 		os.Exit(1)
 	}
 
-	configMap := ConsultationAggregatorConfig{}
-	err = json.NewDecoder(file).Decode(&configMap)
+	caConfig := ConsultationAggregatorConfig{}
+	err = json.NewDecoder(file).Decode(&caConfig)
 	if err != nil {
 		fmt.Printf("could not decode config: %s", err)
 		os.Exit(1)
 	}
 
-	return configMap
+	return caConfig
 }
 
 func getOpenConsultations(label string, url string) []map[string]interface{} {
