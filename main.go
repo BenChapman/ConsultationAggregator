@@ -9,17 +9,19 @@ import (
 	"time"
 
 	"github.com/adlio/trello"
+	"github.com/mmcdole/gofeed"
 )
 
 type ConsultationAggregatorConfig struct {
-	TrelloKey             string `json:"trello_key"`
-	TrelloToken           string `json:"trello_token"`
-	TrelloBoardID         string `json:"trello_board_id"`
-	TrelloListName        string `json:"trello_list_name"`
-	CitizenSpaceInstances []struct {
+	TrelloKey      string `json:"trello_key"`
+	TrelloToken    string `json:"trello_token"`
+	TrelloBoardID  string `json:"trello_board_id"`
+	TrelloListName string `json:"trello_list_name"`
+	Sources        []struct {
+		Type  string `json:"type"`
 		URL   string `json:"url"`
 		Label string `json:"label"`
-	} `json:"citizen_space_instances"`
+	} `json:"sources"`
 }
 
 type CacheItems []string
@@ -85,15 +87,24 @@ func main() {
 
 	consultations := []map[string]interface{}{}
 
-	for _, v := range caConfig.CitizenSpaceInstances {
-		consultations = append(consultations, getOpenConsultations(v.Label, v.URL)...)
+	for _, v := range caConfig.Sources {
+		switch v.Type {
+		case "citizen_space":
+			consultations = append(consultations, getOpenConsultationsFromCitizenSpace(v.Label, v.URL)...)
+		case "civiq":
+			consultations = append(consultations, getOpenConsultationsFromCiviqRSS(v.Label, v.URL)...)
+		default:
+			fmt.Printf("do not have source type %s", v.Type)
+		}
 	}
 
 	for _, v := range consultations {
-		endDate, err := time.Parse("2006/01/02", v["enddate"].(string))
-		if err != nil {
-			fmt.Printf("failed to parse date for submission %s: %s", v["title"].(string), err)
-			continue
+		endDate := time.Time{}
+		if _, ok := v["enddate"]; ok {
+			endDate, err = time.Parse("2006/01/02", v["enddate"].(string))
+			if err != nil {
+				fmt.Printf("failed to parse date for submission %s: %s", v["title"].(string), err)
+			}
 		}
 
 		label, err := getLabelByName(labels, v["label"].(string))
@@ -106,8 +117,10 @@ func main() {
 			IDList:   list.ID,
 			Name:     v["title"].(string),
 			Desc:     v["url"].(string),
-			Due:      &endDate,
 			IDLabels: []string{label.ID},
+		}
+		if !endDate.IsZero() {
+			card.Due = &endDate
 		}
 
 		if !cache.Contains(v["id"].(string)) {
@@ -154,7 +167,7 @@ func getConfig() ConsultationAggregatorConfig {
 	return caConfig
 }
 
-func getOpenConsultations(label string, url string) []map[string]interface{} {
+func getOpenConsultationsFromCitizenSpace(label string, url string) []map[string]interface{} {
 	result, err := http.Get(fmt.Sprintf("%s/api/2.3/json_search_results?dk=op&fd=2018/01/01&td=2018/12/31", url))
 	if err != nil {
 		fmt.Printf("error getting consultations: %s\n", err)
@@ -170,6 +183,26 @@ func getOpenConsultations(label string, url string) []map[string]interface{} {
 
 	for k := range consultations {
 		consultations[k]["label"] = label
+	}
+
+	return consultations
+}
+
+func getOpenConsultationsFromCiviqRSS(label string, url string) []map[string]interface{} {
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURL(url)
+	if err != nil {
+		fmt.Printf("error getting consultations: %s\n", err)
+	}
+
+	consultations := []map[string]interface{}{}
+	for _, v := range feed.Items {
+		consultations = append(consultations, map[string]interface{}{
+			"label": label,
+			"title": v.Title,
+			"url":   v.Link,
+			"id":    v.Link,
+		})
 	}
 
 	return consultations

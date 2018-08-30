@@ -3,8 +3,10 @@
     "trello_token": "[token]",
     "trello_board_id": "[board_id]",
     "trello_list_name": "Up for grabs",
-    "citizen_space_instances": [
-      {"url":"https://consultation.dublincity.ie", "label":"dcc"},
-      {"url":"https://dlrcoco.citizenspace.com/", "label":"dlrcc"}
+    "sources": [
+        {"type":"citizen_space","url":"https://consultation.dublincity.ie", "label":"DCC"},
+        {"type":"citizen_space","url":"https://dlrcoco.citizenspace.com/", "label":"DLRCC"},
+        {"type":"civiq","url":"https://consult.fingal.ie/en/rss/consultations/open.xml","label":"Fingal"},
+        {"type":"civiq","url":"https://consult.sdublincoco.ie/en/rss/consultations/open.xml","label":"SDCC"}
     ]
 }
