@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -188,20 +190,31 @@ func getOpenConsultationsFromCitizenSpace(label string, url string) []map[string
 	return consultations
 }
 
-func getOpenConsultationsFromCiviqRSS(label string, url string) []map[string]interface{} {
+func getOpenConsultationsFromCiviqRSS(label string, feedURL string) []map[string]interface{} {
 	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL(url)
+	feed, err := fp.ParseURL(feedURL)
 	if err != nil {
 		fmt.Printf("error getting consultations: %s\n", err)
 	}
+
+	// Sadly the "link" field in the RSS is wrong, so we have to get the URL of the Civiq
+	// instance in order to generate a working URL from the GUID of the item
+	rssURL, err := url.Parse(feedURL)
+	if err != nil {
+		fmt.Printf("error parsing url: %s\n", err)
+	}
+	rssURL.Path = ""
+	rssURL.RawPath = ""
+	rssURL.RawQuery = ""
+	rssURL.Fragment = ""
 
 	consultations := []map[string]interface{}{}
 	for _, v := range feed.Items {
 		consultations = append(consultations, map[string]interface{}{
 			"label": label,
-			"title": v.Title,
-			"url":   v.Link,
-			"id":    v.Link,
+			"title": html.UnescapeString(v.Title),
+			"url":   fmt.Sprintf("%s/en/node/%s", rssURL, v.GUID),
+			"id":    v.GUID,
 		})
 	}
 
