@@ -2,12 +2,50 @@
 
 
 [[projects]]
+  digest = "1:a62f6ed230a8cd138a9efbe718e7d0b0294f139266f5f55cd942769a9aac8de2"
+  name = "github.com/PuerkitoBio/goquery"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "dc2ec5c7ca4d9aae063b79b9f581dd3ea6afd2b2"
+  version = "v1.4.1"
+
+[[projects]]
   branch = "master"
   digest = "1:1164f5eccc8905c03a2c688141c81f06522ed5fd2eb65cb43debeb730a018276"
   name = "github.com/adlio/trello"
   packages = ["."]
   pruneopts = "UT"
   revision = "8a458717123e328d9103a3bf075e64bc1ec961f8"
+
+[[projects]]
+  digest = "1:66b3310cf22cdc96c35ef84ede4f7b9b370971c4025f394c89a2638729653b11"
+  name = "github.com/andybalholm/cascadia"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "901648c87902174f774fac311d7f176f8647bdaa"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:b0142f883994390cee3fc0efbee8644c91796eb17d6af1bf8268a0961e6c0f3b"
+  name = "github.com/mmcdole/gofeed"
+  packages = [
+    ".",
+    "atom",
+    "extensions",
+    "internal/shared",
+    "rss",
+  ]
+  pruneopts = "UT"
+  revision = "42010a154d249f5f753dfe03a6390b59671e403e"
+  version = "v1.0.0-beta2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:582ced2e8923bf580074b9d47973ace8ee26edabc38fabd015d771cf24ce5978"
+  name = "github.com/mmcdole/goxpp"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "77e4a51a73ed99ee3f33c1474dc166866304acbd"
 
 [[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
@@ -17,9 +55,50 @@
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
+[[projects]]
+  branch = "master"
+  digest = "1:fd35bc6003cfae47dd6041db172fb971f3e08991ecdf2971bd03dcabedef3b0b"
+  name = "golang.org/x/net"
+  packages = [
+    "html",
+    "html/atom",
+    "html/charset",
+  ]
+  pruneopts = "UT"
+  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
+
+[[projects]]
+  digest = "1:aa4d6967a3237f8367b6bf91503964a77183ecf696f1273e8ad3551bb4412b5f"
+  name = "golang.org/x/text"
+  packages = [
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "internal/gen",
+    "internal/tag",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "transform",
+    "unicode/cldr",
+  ]
+  pruneopts = "UT"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["github.com/adlio/trello"]
+  input-imports = [
+    "github.com/adlio/trello",
+    "github.com/mmcdole/gofeed",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
