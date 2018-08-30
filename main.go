@@ -10,11 +10,22 @@ import (
 	"github.com/adlio/trello"
 )
 
-func main() {
-	configMap := getConfig()
+type ConsultationAggregatorConfig struct {
+	TrelloKey             string `json:"trello_key"`
+	TrelloToken           string `json:"trello_token"`
+	TrelloBoardID         string `json:"trello_board_id"`
+	TrelloListName        string `json:"trello_list_name"`
+	CitizenSpaceInstances []struct {
+		URL   string `json:"url"`
+		Label string `json:"label"`
+	} `json:"citizen_space_instances"`
+}
 
-	tc := trello.NewClient(configMap["trello_key"].(string), configMap["trello_token"].(string))
-	board, err := tc.GetBoard(configMap["trello_board_id"].(string), nil)
+func main() {
+	caConfig := getConfig()
+
+	tc := trello.NewClient(caConfig.TrelloKey, caConfig.TrelloToken)
+	board, err := tc.GetBoard(caConfig.TrelloBoardID, nil)
 	if err != nil {
 		fmt.Printf("board error: %s\n", err)
 		os.Exit(1)
@@ -34,7 +45,7 @@ func main() {
 
 	list := &trello.List{}
 	for _, v := range lists {
-		if v.Name == configMap["trello_list_name"].(string) {
+		if v.Name == caConfig.TrelloListName {
 			list = v
 			break
 		}
@@ -47,9 +58,8 @@ func main() {
 
 	consultations := []map[string]interface{}{}
 
-	for _, v := range configMap["citizen_space_instances"].([]interface{}) {
-		a := v.(map[string]interface{})
-		consultations = append(consultations, getOpenConsultations(a["label"].(string), a["url"].(string))...)
+	for _, v := range caConfig.CitizenSpaceInstances {
+		consultations = append(consultations, getOpenConsultations(v.Label, v.URL)...)
 	}
 
 	for _, v := range consultations {
@@ -84,14 +94,14 @@ func main() {
 	}
 }
 
-func getConfig() map[string]interface{} {
+func getConfig() ConsultationAggregatorConfig {
 	file, err := os.Open("config.json")
 	if err != nil {
 		fmt.Printf("could not get config: %s\n", err)
 		os.Exit(1)
 	}
 
-	configMap := map[string]interface{}{}
+	configMap := ConsultationAggregatorConfig{}
 	err = json.NewDecoder(file).Decode(&configMap)
 	if err != nil {
 		fmt.Printf("could not decode config: %s", err)
