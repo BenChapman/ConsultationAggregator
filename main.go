@@ -145,6 +145,7 @@ func main() {
 		fmt.Printf("cache encoding error: %s\n", err)
 		os.Exit(1)
 	}
+	file.Close()
 }
 
 func getConfig() ConsultationAggregatorConfig {
