@@ -42,20 +42,7 @@ func (ci CacheItems) Contains(id string) bool {
 func main() {
 	caConfig := getConfig()
 
-	cacheFilePath := filepath.Join(os.Getenv("HOME"), ".ConsultationCache")
-	file, err := os.Open(cacheFilePath)
-	if err != nil {
-		fmt.Printf("cache file error: %s\n", err)
-		os.Exit(1)
-	}
-
-	cache := CacheItems{}
-	err = json.NewDecoder(file).Decode(&cache)
-	if err != nil {
-		fmt.Printf("cache decode error: %s\n", err)
-		os.Exit(1)
-	}
-	file.Close()
+	cache := getCache()
 
 	tc := trello.NewClient(caConfig.TrelloKey, caConfig.TrelloToken)
 	board, err := tc.GetBoard(caConfig.TrelloBoardID, nil)
@@ -89,18 +76,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	consultations := []map[string]interface{}{}
-
-	for _, v := range caConfig.Sources {
-		switch v.Type {
-		case "citizen_space":
-			consultations = append(consultations, getOpenConsultationsFromCitizenSpace(v.Label, v.URL)...)
-		case "civiq":
-			consultations = append(consultations, getOpenConsultationsFromCiviqRSS(v.Label, v.URL)...)
-		default:
-			fmt.Printf("do not have source type %s", v.Type)
-		}
-	}
+	consultations := getConsultations()
 
 	for _, v := range consultations {
 		label, err := getLabelByName(labels, v["label"].(string))
@@ -134,18 +110,7 @@ func main() {
 		}
 	}
 
-	file, err = os.OpenFile(cacheFilePath, os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Printf("cache file error: %s\n", err)
-		os.Exit(1)
-	}
-
-	err = json.NewEncoder(file).Encode(cache)
-	if err != nil {
-		fmt.Printf("cache encoding error: %s\n", err)
-		os.Exit(1)
-	}
-	file.Close()
+	writeCache(cache)
 }
 
 func getConfig() ConsultationAggregatorConfig {
@@ -187,8 +152,8 @@ func getOpenConsultationsFromCitizenSpace(label string, url string) []map[string
 			if err != nil {
 				fmt.Printf("failed to parse date for submission %s: %s", consultations[k]["title"].(string), err)
 			}
-			consultations[k]["enddate"] = endDate
 		}
+		consultations[k]["enddate"] = endDate
 	}
 
 	return consultations
@@ -257,4 +222,64 @@ func getLabelByName(labels []*trello.Label, name string) (*trello.Label, error) 
 	}
 
 	return nil, fmt.Errorf("could not find label %s in board", name)
+}
+
+func getCache() CacheItems {
+	file, err := os.Open(filepath.Join(os.Getenv("HOME"), ".ConsultationCache"))
+	if err != nil {
+		fmt.Printf("cache file error: %s\n", err)
+		os.Exit(1)
+	}
+
+	cache := CacheItems{}
+	err = json.NewDecoder(file).Decode(&cache)
+	if err != nil {
+		fmt.Printf("cache decode error: %s\n", err)
+		os.Exit(1)
+	}
+	err = file.Close()
+	if err != nil {
+		fmt.Printf("cache decode error: %s\n", err)
+		os.Exit(1)
+	}
+
+	return cache
+}
+
+func writeCache(cache CacheItems) {
+	file, err := os.OpenFile(filepath.Join(os.Getenv("HOME"), ".ConsultationCache"), os.O_WRONLY, 0600)
+	if err != nil {
+		fmt.Printf("cache file error: %s\n", err)
+		os.Exit(1)
+	}
+
+	err = json.NewEncoder(file).Encode(cache)
+	if err != nil {
+		fmt.Printf("cache encoding error: %s\n", err)
+		os.Exit(1)
+	}
+
+	err = file.Close()
+	if err != nil {
+		fmt.Printf("cache encoding error: %s\n", err)
+		os.Exit(1)
+	}
+}
+
+func getConsultations() []map[string]interface{} {
+	caConfig := getConfig()
+
+	consultations := []map[string]interface{}{}
+	for _, v := range caConfig.Sources {
+		switch v.Type {
+		case "citizen_space":
+			consultations = append(consultations, getOpenConsultationsFromCitizenSpace(v.Label, v.URL)...)
+		case "civiq":
+			consultations = append(consultations, getOpenConsultationsFromCiviqRSS(v.Label, v.URL)...)
+		default:
+			fmt.Printf("do not have source type %s", v.Type)
+		}
+	}
+
+	return consultations
 }
