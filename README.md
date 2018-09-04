@@ -8,8 +8,8 @@ This was developed as a proof of concept for the
 
 # Supported consultation platforms (Backends)
 
-* [Civiq](http://civiq.eu/) (A Drupal distribution, via RSS) - South Dublin
-  County Council, Fingal County Council
+* [Civiq](http://civiq.eu/) (A Drupal distribution, via RSS)
+  — South Dublin County Council, Fingal County Council
 * [Citizen Space](https://www.citizenspace.com/info) (via their 
   [JSON API](https://delib.zendesk.com/hc/en-us/sections/200815959-API-documentation-for-developers))
-  - Dublin City Council, Dun Laoghaire Rathdown County Council
+  — Dublin City Council, Dun Laoghaire Rathdown County Council
