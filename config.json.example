@@ -2,7 +2,7 @@
     "trello_key": "[key]",
     "trello_token": "[token]",
     "trello_board_id": "[board_id]",
-    "trello_list_name": "Up for grabs",
+    "trello_list_name": "Triage",
     "sources": [
         {"type":"citizen_space","url":"https://consultation.dublincity.ie", "label":"DCC"},
         {"type":"citizen_space","url":"https://dlrcoco.citizenspace.com/", "label":"DLRCC"},
